@@ -3,3 +3,22 @@
 .mission{padding:16px 20px;border-top:1px solid #304c5c;font-size:.9rem}.mission p{margin-bottom:9px}.mission b{display:inline-block;color:#79edcf;margin-right:8px}.slow-panel{padding:16px 20px;background:#1b3a4c}.slow-panel p{font-size:.9rem;margin:10px 0}.slow-panel button{margin:4px}.slow-panel[hidden]{display:none}
 
 header .brand{min-width:0;overflow-wrap:anywhere}header .brand small{display:block;margin:4px 0 0;font-size:.875rem;letter-spacing:0;line-height:1.5}header>div{flex-shrink:0}.discussion textarea{display:block;width:100%;max-width:100%;font:inherit;resize:vertical;min-height:140px;padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:16px}.discussion textarea:focus-visible{outline:3px solid #e79a21;outline-offset:3px}@media(max-width:760px){header{flex-wrap:wrap}header .brand{width:100%}header .brand small{display:block;font-size:.8rem}}
+/* 모바일에서도 탐지 실행 버튼에 바로 접근하고 하단 콘텐츠를 가리지 않도록 확보합니다. */
+@media (max-width:760px) {
+  body { padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+  #detect {
+    position:fixed;
+    left:14px;
+    right:14px;
+    bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+    width:auto;
+    min-height:52px;
+    margin:0;
+    z-index:20;
+    font-size:16px;
+    box-shadow:0 4px 24px #10293855;
+  }
+  body:has(#cameraPanel:not([hidden])) #detect { display:none; }
+  .inputs button, .playback button, #cameraPanel button { min-height:44px; }
+  input[type="number"], select, .discussion textarea { font-size:16px; }
+}
