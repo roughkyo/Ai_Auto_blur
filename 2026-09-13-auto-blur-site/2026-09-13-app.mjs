@@ -557,7 +557,11 @@ $('download').onclick = () => {
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   },'image/png');
 };
-$('largeText').onclick = () => { document.documentElement.classList.toggle('large'); $('largeText').setAttribute('aria-pressed',String(document.documentElement.classList.contains('large'))); };
+$('largeText').onclick = () => {
+  const enlarged = document.documentElement.classList.toggle('large');
+  $('largeText').setAttribute('aria-pressed', String(enlarged));
+  $('largeText').textContent = enlarged ? '글씨 작게' : '글씨 크게';
+};
 document.querySelectorAll('[data-answer]').forEach(button => { button.onclick = () => { $('predictionFeedback').textContent = `${button.dataset.answer === 'less' ? '맞아요.' : '통과 후보는 줄거나 같아집니다.'} 같은 후보 점수에서 기준만 높이므로 새로 통과하는 후보는 없습니다. 0.25와 0.75 버튼을 눌러 비교하세요.`; }; });
 window.addEventListener('pagehide',()=>{ stopCamera(); stopPlayback(); });
 loadDemo();
