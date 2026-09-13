@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI_Auto_Blur 실습 Lab · AI 객체 탐지 실험실</title>
+  <meta name="description" content="사진 속 사람을 찾고, 임계값을 바꾸며 AI 탐지와 블러·모자이크의 원리를 배우는 실험실">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e2534'/%3E%3Cpath d='M12 7H7v5m13-5h5v5M7 20v5h5m13-5v5h-5' fill='none' stroke='%234ce0bc' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="2026-09-13-style.css">
+  <script defer src="2026-09-13-runtime/ort.wasm.min.js"></script>
+  <script type="module" src="2026-09-13-app.mjs"></script>
+</head>
+<body>
+  <header><a class="brand" href="#main"><span class="logo">▣</span> AI_Auto_Blur 실습 Lab <small>Yangphago_세상을 이롭게 하는 AI 프로젝트</small></a><div><span class="local">브라우저 안에서 처리</span><button id="largeText" aria-pressed="false">글씨 크게</button></div></header>
+  <main id="main">
+    <div class="heading"><div><p class="eyebrow">직접 바꾸고, 차이를 발견하는 AI 실험</p><h1>AI는 어디를 가려야 할까?</h1><p>사람을 찾는 기준부터 픽셀을 가리는 방법까지, 한 단계씩 실험해 보세요.</p></div><a class="text-link" href="#quiz">개념 문제 풀기 ↗</a></div>
+    <nav id="steps" aria-label="실험 단계"></nav>
+    <div class="workspace">
+      <section class="viewer" aria-label="이미지 실험 화면">
+        <div class="viewer-top"><span id="source">첨부 샘플 사진</span><span id="resolution"></span></div>
+        <div class="canvas-wrap"><canvas id="view" width="960" height="600" aria-label="현재 단계 이미지와 탐지 상자"></canvas><div id="cameraPanel" hidden><video id="video" autoplay muted playsinline></video><div><button id="capture">이 장면 촬영</button><button id="closeCamera">카메라 닫기</button></div></div></div>
+        <div class="legend"><span>━ 통과</span><span>┄ 기준 미만</span><span>━ 중복 제거</span><span>상자를 누르면 가릴 대상에서 제외·복원</span></div>
+        <div class="inputs"><button id="uploadTrigger">＋ 사진 업로드</button><input id="upload" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="camera">카메라로 촬영</button><button id="demo">샘플 사진</button><button id="original" aria-pressed="false">원본 비교</button></div>
+        <p id="status" role="status" aria-live="polite">예시로 먼저 실험하거나 내 사진을 선택하세요.</p>
+        <div id="mission" class="mission"></div><div id="slowPanel" class="slow-panel" hidden><h3>후보 예측 과정 관찰</h3><p id="sceneCopy" role="status"></p><button id="slowStart">과정 펼쳐 보기 · 다시 보기</button><button id="sceneNext">다음 장면 →</button></div><div class="playback"><button id="prev" aria-label="이전 단계">← 이전</button><button id="next" class="primary">다음 단계 →</button></div>
+      </section>
+      <aside class="controls">
+        <div class="step-copy"><p id="stepNumber" class="eyebrow"></p><h2 id="stepTitle"></h2><p id="stepDescription"></p><button id="detect" class="primary wide">내 사진에서 AI 탐지 실행</button></div>
+        <section class="threshold"><div class="section-title"><h3>신뢰도 임계값</h3><span>THRESHOLD</span></div><div class="value-line"><output id="thresholdValue">0.25</output><label>직접 입력 <input id="thresholdNumber" type="number" min="0.01" max="1" step="0.01" value="0.25"></label></div><label class="sr-only" for="threshold">사람 후보의 최소 신뢰도</label><input id="threshold" type="range" min="0.01" max="1" step="0.01" value="0.25"><div class="range-label"><span>더 많은 후보</span><span>더 엄격한 기준</span></div><div class="presets"><button data-threshold="0.25">0.25</button><button data-threshold="0.50">0.50</button><button data-threshold="0.75">0.75</button></div><p class="rule">후보 점수 <b>≥</b> 임계값이면 통과</p><div class="stats"><div><strong id="passed">0</strong><span>기준 통과 후보</span></div><div><strong id="kept">0</strong><span>NMS 후 상자</span></div><div><strong id="masked">0</strong><span>가릴 얼굴</span></div></div><p class="hint">입장 심사의 통과선과 같아요. 기준을 바꿔도 모델을 다시 학습하지 않습니다. 점수 0.80은 정답률 80%라는 뜻이 아닙니다.</p></section>
+        <details open><summary>중복 상자 정리 · NMS</summary><p class="hint"><b>NMS는 Non-Maximum Suppression의 약자</b></p><p class="hint">같은 사람을 둘러싼 후보 상자가 여러 개라면, <b>점수가 가장 높은 상자를 남기고 많이 겹치는 나머지 상자를 제거하는 방법</b></p><label for="iou">겹침(IoU) 기준 <output id="iouValue">0.45</output></label><input id="iou" type="range" min="0.10" max="0.90" step="0.05" value="0.45"><p class="hint">높은 점수 상자를 남기고, 이 기준보다 많이 겹친 상자를 제거합니다. 신뢰도 기준과 역할이 다릅니다.</p></details>
+        <details open><summary>얼굴 가리기 설정</summary><p id="faceStatus" class="hint" role="status"></p><div class="row"><label>방법 <select id="effect"><option value="blur">블러</option><option value="mosaic">모자이크</option></select></label><label>강도 <output id="strengthValue">18</output><input id="strength" type="range" min="4" max="48" value="18"></label></div><label for="padding">상자 여유 폭 <output id="paddingValue">5%</output></label><input id="padding" type="range" min="0" max="20" value="5"><button id="addBox" aria-pressed="false">누락 얼굴 드래그로 추가</button><button id="resetBoxes">수동 보정 초기화</button><details><summary>좌표로 영역 추가</summary><div class="coords"><label>x <input id="boxX" type="number" min="0" value="0"></label><label>y <input id="boxY" type="number" min="0" value="0"></label><label>폭 <input id="boxW" type="number" min="1" value="100"></label><label>높이 <input id="boxH" type="number" min="1" value="100"></label></div><button id="addCoordinates">입력 좌표 추가</button></details><button id="download" class="primary wide">가린 결과 PNG 저장 ↓</button></details>
+      </aside>
+    </div>
+    <section class="analysis"><div><p class="eyebrow">WHY THIS BOX?</p><h2>이 상자는 왜 남았을까?</h2><p id="candidateSummary"></p><p class="hint"><b>후보 #번호란?</b> YOLO 출력 배열의 순번으로, 예측한 상자를 구분하는 표식입니다. 무작위 숫자나 사람의 신원·사람 수가 아닙니다. 같은 사람에게 여러 후보가 생길 수 있습니다. F번호는 얼굴 모델의 탐지 결과입니다.</p><p class="hint">같은 사진에서 기준만 바꿔 보세요. 바꾼 구간에 후보 점수가 없다면 결과도 같습니다.</p><div id="timings" class="timings"></div></div><div class="table-wrap"><table><caption class="sr-only">사람 후보별 점수와 처리 사유</caption><thead><tr><th>후보</th><th>사람 점수</th><th>판정 · 이유</th><th>가림</th></tr></thead><tbody id="candidates"></tbody></table></div></section>
+    <section class="experiment"><div><p class="eyebrow">PREDICT → TRY → EXPLAIN</p><h2>먼저 예상하고, 확인하기</h2><p>기준을 0.25에서 0.75로 높이면 <b>NMS 이전 통과 후보 수</b>는 어떻게 될까요?</p><div id="prediction"><button data-answer="more">늘거나 같아진다</button><button data-answer="less">줄거나 같아진다</button><button data-answer="learn">AI가 다시 학습한다</button></div><p id="predictionFeedback" role="status"></p></div><div class="concept-note"><h3>찾기와 가리기는 별개예요</h3><p><b>객체 탐지</b>는 무엇이 어디에 있는지 예측합니다.</p><p><b>블러</b>는 주변 픽셀을 섞어 경계를 흐리게 합니다.</p><p><b>모자이크</b>는 작은 블록을 대표 색으로 채웁니다.</p></div></section>
+    <section id="quiz"><div class="section-title"><div><p class="eyebrow">CHECK YOUR UNDERSTANDING</p><h2>이제, 내 말로 설명할 수 있나요?</h2></div><span id="quizProgress">0 / 4 확인</span></div><div id="questions" class="quiz-grid"></div></section>
+    <footer>원리 학습용 실험실 · 사람 탐지 후 연결된 얼굴만 가립니다. 얼굴 누락이나 주변 단서까지 완전히 제거한다고 보장하지 않습니다.<br>사진은 이 브라우저 메모리에서 처리됩니다. <a href="2026-09-13-출처와배포.md">모델 출처 · 실행 및 배포 안내</a></footer>
+  </main>
+</body>
+</html>
